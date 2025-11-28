@@ -67,6 +67,13 @@ def parse_args():
         default=1.0,
         help="Column subsampling per tree.",
     )
+    # NEW: Argument for controlling class imbalance
+    parser.add_argument(
+        "--scale_pos_weight",
+        type=float,
+        default=1.0, # None means we calculate it later based on data
+        help="Controls the balance of positive and negative weights. Set to 1 for no weighting.",
+)
 
     return parser.parse_args()
 
@@ -94,8 +101,13 @@ def binarize_readmitted(series: pd.Series) -> pd.Series:
     1 = readmitted within 30 days ('<30')
     0 = all other values.
     """
-    return series.apply(lambda v: 1 if str(v).strip() == "<30" else 0)
+    # ADDED: Use pd.to_numeric().fillna(0) for robustness to non-numeric issues 
+    # (which we discussed regarding the 20k missing/unclassified records).
+    binary_series = series.apply(lambda v: 1 if str(v).strip() == "<30" else 0)
 
+    # Coerce to numeric, treat errors as NaN, fill NaN with 0, then cast to int
+    # This robustly handles any non-numeric values in the binary column by setting them to 0.
+    return pd.to_numeric(binary_series, errors='coerce').fillna(0).astype(int)
 
 def prepare_features(
     train_df: pd.DataFrame, test_df: pd.DataFrame, target_col: str
@@ -138,8 +150,9 @@ def prepare_features(
     else:
         # Assume column is already binary (e.g. readmitted_30d_binary)
         print(f"Using '{target_col}' as precomputed binary target...")
-        y_train = y_train_raw
-        y_test = y_test_raw
+        # ADDED: Ensure the precomputed binary target is robustly treated as integer 0/1
+        y_train = pd.to_numeric(y_train_raw, errors='coerce').fillna(0).astype(int)
+        y_test = pd.to_numeric(y_test_raw, errors='coerce').fillna(0).astype(int)
 
     # --- 3. One-hot encode categorical features ---
     print("One-hot encoding categorical features...")
@@ -182,11 +195,23 @@ def main():
     X_train, X_test, y_train, y_test = prepare_features(
         train_df, test_df, args.target_col
     )
+# 3. CLASS WEIGHTING LOGIC: Calculate or use user-provided scale_pos_weight
+    # -----------------------------------------------------------------------
+    scale_pos_weight = args.scale_pos_weight
 
-    # 3. Configure MLflow autolog (tracks params, metrics, and the model)
+    if scale_pos_weight is None:
+        # Calculate the weight based on the training data imbalance (Majority / Minority)
+        print("Calculating scale_pos_weight for imbalance...")
+        y_train_counts = y_train.value_counts()
+        neg_count = y_train_counts[0]
+        pos_count = y_train_counts[1]
+        scale_pos_weight = neg_count / pos_count
+        print(f"Calculated scale_pos_weight (Neg/Pos Ratio): {scale_pos_weight:.2f}")
+
+    # 4. Configure MLflow autolog (tracks params, metrics, and the model)
     mlflow.xgboost.autolog()
 
-    # 4. Define the model with CLI hyperparameters
+    # 5. Define the model with CLI hyperparameters and the calculated weight
     model = xgb.XGBClassifier(
         use_label_encoder=False,
         eval_metric="logloss",
@@ -197,9 +222,10 @@ def main():
         colsample_bytree=args.colsample_bytree,
         n_jobs=-1,
         objective="binary:logistic",
+        scale_pos_weight=scale_pos_weight,
     )
 
-    # 5. Train and evaluate inside an MLflow run
+    # 6. Train and evaluate inside an MLflow run
     with mlflow.start_run():
         print("Fitting XGBoost model...")
         model.fit(X_train, y_train)
