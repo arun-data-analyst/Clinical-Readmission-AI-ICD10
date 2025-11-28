@@ -1,0 +1,11 @@
+name: clinical-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pandas
+  - scikit-learn
+  - xgboost
+  - pip
+  - pip:
+      - azureml-mlflow

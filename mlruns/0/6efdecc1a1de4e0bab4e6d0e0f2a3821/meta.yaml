@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/achar/OneDrive/Desktop/Project_Narayan/Clinical-Readmission-AI-ICD10/mlruns/0/6efdecc1a1de4e0bab4e6d0e0f2a3821/artifacts
+end_time: 1764204610930
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 6efdecc1a1de4e0bab4e6d0e0f2a3821
+run_name: bittersweet-hog-895
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764204526482
+status: 3
+tags: []
+user_id: achar

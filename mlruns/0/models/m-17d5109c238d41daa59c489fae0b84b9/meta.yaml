@@ -1,0 +1,10 @@
+artifact_location: file:///C:/Users/achar/OneDrive/Desktop/Project_Narayan/Clinical-Readmission-AI-ICD10/mlruns/0/models/m-17d5109c238d41daa59c489fae0b84b9/artifacts
+creation_timestamp: 1764204553862
+experiment_id: '0'
+last_updated_timestamp: 1764204568013
+model_id: m-17d5109c238d41daa59c489fae0b84b9
+model_type: null
+name: model
+source_run_id: 6efdecc1a1de4e0bab4e6d0e0f2a3821
+status: 2
+status_message: null
