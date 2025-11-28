@@ -71,26 +71,25 @@ def check_high_risk_a1c(result):
 
 
 # ---------------------------------------------
-# BINARY 30-DAY READMISSION FLAG
+# BINARY 30-DAY READMISSION FLAG (ROBUST VERSION)
 # ---------------------------------------------
 def make_readmitted_30d_binary(value):
     """
     Map original 'readmitted' values to a binary 30-day readmission flag.
-
-    Original UCI values:
-      - "NO"  : no readmission
-      - "<30" : readmitted within 30 days
-      - ">30" : readmitted after 30 days
-
-    Binary flag:
-      - 1 if "<30"
-      - 0 if "NO" or ">30" (or anything else)
+    Returns 1 for high-risk readmission (<30 days), 0 otherwise.
     """
+    # CRITICAL: Handle NaN or None values explicitly by treating them as 0
+    if pd.isna(value) or value is None:
+        return 0
+    
+    # Convert to string and clean up for comparison
     value_str = str(value).strip()
+    
     if value_str == "<30":
         return 1
+    
+    # Everything else (NO, >30, or other unexpected text) is treated as 0
     return 0
-
 
 # ---------------------------------------------
 # MAIN ENRICHMENT LOGIC
